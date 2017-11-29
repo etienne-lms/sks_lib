@@ -1,0 +1,88 @@
+# These are dumped from the optee_client
+ifneq ($(V),1)
+VPREFIX := @
+endif
+export VPREFIX
+
+# Default output directory.
+# May be absolute, or relative to the optee_client source directory.
+O		?= out
+# To be used instead of $(O) in sub-directories
+OO		:= $(if $(filter /%,$(O)),$(O),$(CURDIR)/../$(O))
+export OO
+
+EXPORT_DIR ?= $(O)/export
+DESTDIR ?= $(EXPORT_DIR)
+BINDIR ?= /bin
+LIBDIR ?= /lib
+INCLUDEDIR ?= /include
+
+CFLAGS          += -Wall -Wbad-function-cast -Wcast-align \
+		   -Werror-implicit-function-declaration -Wextra \
+		   -Wfloat-equal -Wformat-nonliteral -Wformat-security \
+		   -Wformat=2 -Winit-self -Wmissing-declarations \
+		   -Wmissing-format-attribute -Wmissing-include-dirs \
+		   -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs \
+		   -Wpointer-arith -Wshadow -Wstrict-prototypes \
+		   -Wswitch-default -Wunsafe-loop-optimizations \
+		   -Wwrite-strings -Werror
+
+RM              := rm -f
+define rmdir
+if [ -d "$(1)" ] ; then rmdir --ignore-fail-on-non-empty $(1) ; fi
+endef
+
+.PHONY: all build build-lib install copy_export \
+	clean cscope clean-cscope distclean
+
+all: build install
+
+build-lib:
+	@echo "Building liboptee-cryptoki library"
+	@$(MAKE) --makefile=Makefile.raw --directory=lib --no-print-directory --no-builtin-variables
+
+
+build-test: install-lib
+	@echo "Building liboptee-cryptoki test application"
+	$(MAKE) --makefile=Makefile.raw --directory=test \
+		--no-print-directory --no-builtin-variables \
+		SKS_EXPORT_PATH=$(DESTDIR)
+
+build: build-lib build-test
+
+install: install-lib install-test
+
+clean: clean-lib clean-test clean-cscope
+
+clean-lib:
+	@$(MAKE) --makefile=Makefile.raw --directory=lib --no-print-directory clean
+
+clean-test:
+	@$(MAKE) --makefile=Makefile.raw --directory=test --no-print-directory clean
+
+cscope:
+	@echo "  CSCOPE"
+	${VPREFIX}find ${CURDIR} -name "*.[chsS]" > cscope.files
+	${VPREFIX}cscope -b -q -k
+
+clean-cscope:
+	${VPREFIX}rm -f cscope.*
+
+
+distclean: clean
+	$(RM) $(DESTDIR)/$(LIBDIR)/liboptee_cryptoki.so*
+	$(RM) $(DESTDIR)/$(LIBDIR)/liboptee_cryptoki.a
+	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11.h
+	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11t.h
+	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11f.h
+	$(call rmdir,$(OUT_DIR))
+
+install-lib: build-lib
+	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(INCLUDEDIR)
+	cp -a ${O}/lib/liboptee_cryptoki.so* $(DESTDIR)/$(LIBDIR)
+	cp -a ${O}/lib/liboptee_cryptoki.a $(DESTDIR)/$(LIBDIR)
+	cp lib/include/pkcs11/*.h $(DESTDIR)/$(INCLUDEDIR)
+
+install-test: build-test
+	mkdir -p $(DESTDIR)/$(BINDIR)
+	cp ${O}/test/sks-test $(DESTDIR)/$(BINDIR)

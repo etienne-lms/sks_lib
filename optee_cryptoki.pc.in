@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+libdir=@libdir@
+
+Name: optee_cryptoki
+Description: PKCS#11 CryptoKi API for the OP-TEE.
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -loptee_cryptoki
+Cflags: -I${includedir}

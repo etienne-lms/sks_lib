@@ -181,6 +181,14 @@ extern "C" {
  * #endif
  */
 
+/* We go the UNIX way */
+#define CK_DECLARE_FUNCTION(returnType, name)		returnType name
+#define CK_DECLARE_FUNCTION_POINTER(returnType, name)	returnType (* name)
+#define CK_CALLBACK_FUNCTION(returnType, name)		returnType (* name)
+#define CK_PTR	*
+#ifndef NULL_PTR
+#define NULL_PTR 0
+#endif
 
 /* All the various Cryptoki types and #define'd values are in the
  * file pkcs11t.h.
