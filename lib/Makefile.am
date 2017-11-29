@@ -9,6 +9,7 @@ AM_CFLAGS		= $(WARNINGCFLAGS)
 liboptee_cryptoki_la_LDFLAGS	= -version-info $(LIBVER_CURRENT):$(LIBVER_REVISION):$(LIBVER_AGE)
 
 liboptee_cryptoki_la_SOURCES	= pkcs11_api.c
+liboptee_cryptoki_la_SOURCES	+= handle.c handle.h
 
 liboptee_cryptoki_la_CFLAGS	= -I$(top_srcdir)/lib/include
 liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/pkcs11
