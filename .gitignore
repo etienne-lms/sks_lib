@@ -31,3 +31,11 @@ Makefile.in
 # http://www.gnu.org/software/texinfo
 
 /texinfo.tex
+
+# my humble local contriution
+
+cscope.*
+out
+*.swp
+.cproject
+.project
