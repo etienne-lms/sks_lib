@@ -29,6 +29,10 @@ LIBSKS_SRCS 		+= handle.c
 
 LIBSKS_INCLUDES		= ${CURDIR}/include
 LIBSKS_INCLUDES		+= ${CURDIR}/include/pkcs11
+LIBSKS_INCLUDES 	+= ${CURDIR}/include/libteec
+ifdef TEEC_EXPORT
+LIBSKS_INCLUDES		+= $(TEEC_EXPORT)/include
+endif
 
 LIBSKS_CFLAGS		:= $(addprefix -I, $(LIBSKS_INCLUDES)) \
 				$(CFLAGS) -D_GNU_SOURCE -fPIC

@@ -13,6 +13,7 @@ liboptee_cryptoki_la_SOURCES	+= handle.c handle.h
 
 liboptee_cryptoki_la_CFLAGS	= -I$(top_srcdir)/lib/include
 liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/pkcs11
+liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/libteec
 
 liboptee_cryptoki_la_CFLAGS	+= -D_GNU_SOURCE
 liboptee_cryptoki_la_CFLAGS	+= -DCFG_OPTEECK_LOG_LEVEL=$(CFG_OPTEECK_LOG_LEVEL)
