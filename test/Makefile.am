@@ -3,6 +3,7 @@ bin_PROGRAMS = sks-test
 AM_CFLAGS		= $(WARNINGCFLAGS)
 
 sks_test_SOURCES	= sks-test.c
+sks_test_SOURCES	+= test-objects.c
 
 sks_test_CFLAGS 	= $(AM_CFLAGS)
 sks_test_CFLAGS 	+= -I$(top_srcdir)/lib/include/pkcs11/

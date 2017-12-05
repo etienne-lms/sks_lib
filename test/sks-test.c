@@ -319,6 +319,17 @@ int test_token_basics(void)
 	return 0;
 }
 
+CK_RV cktest_create_objects(void);
+
+int test_aes_ciphering(void)
+{
+	CK_RV rv;
+
+	rv = cktest_create_objects();
+
+	return rv ? -1 : 0;
+}
+
 int main(int argc, char *argv[])
 {
 	(void)argc;
@@ -326,6 +337,10 @@ int main(int argc, char *argv[])
 	int rc;
 
 	rc = test_token_basics();
+	if (rc)
+		return rc;
+
+	rc = test_aes_ciphering();
 	if (rc)
 		return rc;
 
