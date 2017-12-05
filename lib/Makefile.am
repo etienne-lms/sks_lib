@@ -16,6 +16,7 @@ liboptee_cryptoki_la_SOURCES	+= helpers_ck.c helpers_ck.h
 liboptee_cryptoki_la_SOURCES	+= serializer.c serializer.h
 liboptee_cryptoki_la_SOURCES	+= serialize_ck.c serialize_ck.h
 liboptee_cryptoki_la_SOURCES	+= sanitize_object.c sanitize_object.h
+liboptee_cryptoki_la_SOURCES	+= ck_requests.c ck_requests.h
 
 liboptee_cryptoki_la_CFLAGS	= -I$(top_srcdir)/lib/include
 liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/pkcs11

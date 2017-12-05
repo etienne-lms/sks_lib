@@ -32,6 +32,7 @@ LIBSKS_SRCS 		+= helpers_ck.c
 LIBSKS_SRCS		+= serializer.c
 LIBSKS_SRCS		+= serialize_ck.c
 LIBSKS_SRCS		+= sanitize_object.c
+LIBSKS_SRCS		+= ck_requests.c
 
 LIBSKS_INCLUDES		= ${CURDIR}/include
 LIBSKS_INCLUDES		+= ${CURDIR}/include/pkcs11
