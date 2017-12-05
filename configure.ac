@@ -8,6 +8,7 @@ AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 AC_CONFIG_FILES([Makefile
 		 lib/Makefile
+		 test/Makefile
 		 optee_cryptoki.pc])
 
 # Libtool versioning format:

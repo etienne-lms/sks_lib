@@ -1,0 +1,47 @@
+OUT_DIR := $(OO)/test
+
+BINARY_FILE = $(OUT_DIR)/sks-test
+
+.PHONY: all clean
+all: $(BINARY_FILE)
+clean:
+
+CC		= $(CROSS_COMPILE)gcc
+LD		= $(CROSS_COMPILE)ld
+AR		= $(CROSS_COMPILE)ar
+NM		= $(CROSS_COMPILE)nm
+OBJCOPY		= $(CROSS_COMPILE)objcopy
+OBJDUMP		= $(CROSS_COMPILE)objdump
+READELF		= $(CROSS_COMPILE)readelf
+
+TEST_SRCS	= sks-test.c
+
+SRCS_DIR	:= ${CURDIR}
+OBJ_DIR		:= $(OUT_DIR)
+TEST_OBJS	:= $(patsubst %.c,$(OBJ_DIR)/%.o, $(TEST_SRCS))
+
+TEST_CFLAGS	+= -Wall -I.
+
+TEST_CFLAGS	+= -I$(SKS_EXPORT_PATH)/include
+TEST_LDADD	+= -loptee_cryptoki -L$(SKS_EXPORT_PATH)/lib
+
+TEST_CFLAGS	+= -I$(TEEC_EXPORT)/include
+TEST_LDADD	+= -lteec -L$(TEEC_EXPORT)/lib
+
+$(BINARY_FILE): $(TEST_OBJS)
+	@echo "  LINK    $<"
+	$(CC) -o $@ $+ $(TEST_LDADD)
+
+$(OBJ_DIR)/%.o: $(SRCS_DIR)/%.c
+	$(VPREFIX)mkdir -p $(dir $@)
+	@echo "  CC      $<"
+	$(VPREFIX)$(CC) $(TEST_CFLAGS) -c $< -o $@
+
+RM              := rm -f
+define rmdir
+if [ -d "$(1)" ] ; then rmdir --ignore-fail-on-non-empty $(1) ; fi
+endef
+
+clean:
+	$(RM) $(TEST_OBJS) $(BINARY_FILE)
+	$(call rmdir,$(OUT_DIR))
