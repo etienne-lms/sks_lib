@@ -11,6 +11,8 @@ liboptee_cryptoki_la_LDFLAGS	= -version-info $(LIBVER_CURRENT):$(LIBVER_REVISION
 liboptee_cryptoki_la_SOURCES	= pkcs11_api.c
 liboptee_cryptoki_la_SOURCES	+= handle.c handle.h
 liboptee_cryptoki_la_SOURCES	+= invoke_ta.c invoke_ta.h
+liboptee_cryptoki_la_SOURCES	+= pkcs11_token.c pkcs11_token.h
+liboptee_cryptoki_la_SOURCES	+= helpers_ck.c helpers_ck.h
 
 liboptee_cryptoki_la_CFLAGS	= -I$(top_srcdir)/lib/include
 liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/pkcs11

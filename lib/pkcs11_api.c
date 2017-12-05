@@ -5,7 +5,13 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include "ck_requests.h"
+#include "invoke_ta.h"
+#include "local_utils.h"
 #include <pkcs11.h>
+#include <stdlib.h>
+#include "pkcs11_token.h"
+
 
 static int inited;
 
@@ -15,17 +21,32 @@ static int inited;
 			return CKR_CRYPTOKI_NOT_INITIALIZED; \
 	} while (0)
 
+#define SANITY_NONNULL_PTR(ptr) \
+	do { \
+		if (!ptr) \
+			return CKR_ARGUMENTS_BAD; \
+	} while (0)
+
+
+#define SANITY_SESSION_FLAGS(flags) \
+	do { \
+		if (flags & ~(CKF_RW_SESSION | \
+			      CKF_SERIAL_SESSION)) \
+			return CKR_ARGUMENTS_BAD; \
+	} while (0)
+
 /*
  * List of all PKCS#11 cryptoki API functions implemented
  */
 
 CK_RV C_Initialize(CK_VOID_PTR init_args)
 {
-	(void)init_args;
 	CK_C_INITIALIZE_ARGS_PTR args = (CK_C_INITIALIZE_ARGS_PTR)init_args;
 
 	if (inited)
 		return CKR_CRYPTOKI_ALREADY_INITIALIZED;
+
+	(void)args;
 
 	/*
 	 * TODO
@@ -40,6 +61,7 @@ CK_RV C_Finalize(CK_VOID_PTR res)
 	(void)res;
 	SANITY_LIB_INIT;
 
+	sks_invoke_terminate();
 	inited = 0;
 
 	return CKR_OK;
@@ -49,8 +71,9 @@ CK_RV C_GetInfo(CK_INFO_PTR info)
 {
 	(void)info;
 	SANITY_LIB_INIT;
+	SANITY_NONNULL_PTR(info);
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	return sks_ck_get_info(info);
 }
 
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
@@ -64,22 +87,42 @@ CK_RV C_GetSlotList(CK_BBOOL token_present,
 		    CK_SLOT_ID_PTR slots,
 		    CK_ULONG_PTR count)
 {
-	(void)token_present;
-	(void)slots;
-	(void)count;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_slot_get_list(token_present, slots, count);
+
+	ASSERT(rv == CKR_ARGUMENTS_BAD ||
+		rv == CKR_BUFFER_TOO_SMALL ||
+		rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK);
+
+	return rv;
 }
 
 CK_RV C_GetSlotInfo(CK_SLOT_ID slot,
 		    CK_SLOT_INFO_PTR info)
 {
-	(void)slot;
-	(void)info;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_slot_get_info(slot, info);
+
+	ASSERT(rv == CKR_ARGUMENTS_BAD ||
+		rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_SLOT_ID_INVALID);
+
+	return rv;
 }
 
 CK_RV C_InitToken(CK_SLOT_ID slot,
@@ -99,35 +142,52 @@ CK_RV C_InitToken(CK_SLOT_ID slot,
 CK_RV C_GetTokenInfo(CK_SLOT_ID slot,
 		     CK_TOKEN_INFO_PTR info)
 {
-	(void)slot;
-	(void)info;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_token_get_info(slot, info);
+
+	ASSERT(rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_DEVICE_MEMORY ||
+		rv == CKR_DEVICE_REMOVED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_SLOT_ID_INVALID ||
+		rv == CKR_TOKEN_NOT_PRESENT ||
+		rv == CKR_TOKEN_NOT_RECOGNIZED ||
+		rv == CKR_ARGUMENTS_BAD);
+
+	return rv;
 }
 
 CK_RV C_GetMechanismList(CK_SLOT_ID slot,
 			 CK_MECHANISM_TYPE_PTR mechanisms,
 			 CK_ULONG_PTR count)
 {
-	(void)slot;
-	(void)mechanisms;
-	(void)count;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_token_mechanism_ids(slot, mechanisms, count);
+
+	return rv;
 }
 
 CK_RV C_GetMechanismInfo(CK_SLOT_ID slot,
 			 CK_MECHANISM_TYPE type,
 			 CK_MECHANISM_INFO_PTR info)
 {
-	(void)slot;
-	(void)type;
-	(void)info;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_token_mechanism_info(slot, type, info);
+
+	return rv;
 }
 
 CK_RV C_OpenSession(CK_SLOT_ID slot,
@@ -136,41 +196,88 @@ CK_RV C_OpenSession(CK_SLOT_ID slot,
 		    CK_NOTIFY callback,
 		    CK_SESSION_HANDLE_PTR session)
 {
-	(void)slot;
-	(void)flags;
-	(void)cookie;
-	(void)callback;
-	(void)session;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
+	SANITY_SESSION_FLAGS(flags);
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	/* Specific mandated flag */
+	if (!(flags & CKF_SERIAL_SESSION))
+		return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
 
+	rv = sks_ck_open_session(slot, flags, cookie, callback, session);
+
+	ASSERT(rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_DEVICE_MEMORY ||
+		rv == CKR_DEVICE_REMOVED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_SESSION_COUNT ||
+		rv == CKR_SESSION_PARALLEL_NOT_SUPPORTED ||
+		rv == CKR_SESSION_READ_WRITE_SO_EXISTS ||
+		rv == CKR_SLOT_ID_INVALID ||
+		rv == CKR_TOKEN_NOT_PRESENT ||
+		rv == CKR_TOKEN_NOT_RECOGNIZED ||
+		rv == CKR_TOKEN_WRITE_PROTECTED ||
+		rv == CKR_ARGUMENTS_BAD);
+
+	return rv;
 }
 
 CK_RV C_CloseSession(CK_SESSION_HANDLE session)
 {
-	(void)session;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_close_session(session);
+
+	ASSERT(rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_DEVICE_MEMORY ||
+		rv == CKR_DEVICE_REMOVED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_SESSION_CLOSED ||
+		rv == CKR_SESSION_HANDLE_INVALID);
+
+	return rv;
 }
 
 CK_RV C_CloseAllSessions(CK_SLOT_ID slot)
 {
-	(void)slot;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_close_all_sessions(slot);
+
+	ASSERT(rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_DEVICE_MEMORY ||
+		rv == CKR_DEVICE_REMOVED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_SLOT_ID_INVALID ||
+		rv == CKR_TOKEN_NOT_PRESENT);
+
+	return rv;
 }
 
 CK_RV C_GetSessionInfo(CK_SESSION_HANDLE session,
 		       CK_SESSION_INFO_PTR info)
 {
-	(void)session;
-	(void)info;
 	SANITY_LIB_INIT;
+	SANITY_NONNULL_PTR(info);
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	return sks_ck_get_session_info(session, info);
 }
 
 CK_RV C_InitPIN(CK_SESSION_HANDLE session,
@@ -257,13 +364,14 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE session,
 		     CK_ULONG count,
 		     CK_OBJECT_HANDLE_PTR phObject)
 {
-	(void)session;
-	(void)attribs;
-	(void)count;
-	(void)phObject;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_create_object(session, attribs, count, phObject);
+
+	// TODO sanity of return value
+	return rv;
 }
 
 CK_RV C_CopyObject(CK_SESSION_HANDLE session,
@@ -371,12 +479,14 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE session,
 		    CK_MECHANISM_PTR mechanism,
 		    CK_OBJECT_HANDLE key)
 {
-	(void)session;
-	(void)mechanism;
-	(void)key;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_init(session, mechanism, key, 0);
+
+	// TODO snanity of return value
+	return rv;
 }
 
 CK_RV C_Encrypt(CK_SESSION_HANDLE session,
@@ -385,14 +495,15 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE session,
 		CK_BYTE_PTR out,
 		CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)in;
-	(void)in_len;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = C_EncryptUpdate(session, in, in_len, out, out_len);
+	if (rv)
+		return rv;
+
+	return C_EncryptFinal(session, NULL, 0);
 }
 
 CK_RV C_EncryptUpdate(CK_SESSION_HANDLE session,
@@ -401,38 +512,42 @@ CK_RV C_EncryptUpdate(CK_SESSION_HANDLE session,
 		      CK_BYTE_PTR out,
 		      CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)in;
-	(void)in_len;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_update(session, in, in_len, out, out_len, 0);
+
+	// TODO snanity of return value
+	return rv;
 }
 
 CK_RV C_EncryptFinal(CK_SESSION_HANDLE session,
 		     CK_BYTE_PTR out,
 		     CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_final(session, out, out_len, 0);
+
+	// TODO sanity of return value
+	return rv;
 }
 
 CK_RV C_DecryptInit(CK_SESSION_HANDLE session,
 		    CK_MECHANISM_PTR  mechanism,
 		    CK_OBJECT_HANDLE  key)
 {
-	(void)session;
-	(void)mechanism;
-	(void)key;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_init(session, mechanism, key, 1);
+
+	// TODO snanity of return value
+	return rv;
 }
 
 CK_RV C_Decrypt(CK_SESSION_HANDLE session,
@@ -441,14 +556,15 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE session,
 		CK_BYTE_PTR out,
 		CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)in;
-	(void)in_len;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = C_DecryptUpdate(session, in, in_len, out, out_len);
+	if (rv)
+		return rv;
+
+	return C_DecryptFinal(session, NULL, 0);
 }
 
 CK_RV C_DecryptUpdate(CK_SESSION_HANDLE session,
@@ -457,26 +573,28 @@ CK_RV C_DecryptUpdate(CK_SESSION_HANDLE session,
 		      CK_BYTE_PTR out,
 		      CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)in;
-	(void)in_len;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_update(session, in, in_len, out, out_len, 1);
+
+	// TODO snanity of return value
+	return rv;
 }
 
 CK_RV C_DecryptFinal(CK_SESSION_HANDLE session,
 		     CK_BYTE_PTR out,
 		     CK_ULONG_PTR out_len)
 {
-	(void)session;
-	(void)out;
-	(void)out_len;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_encdecrypt_final(session, out, out_len, 1);
+
+	// TODO snanity of return value
+	return rv;
 }
 
 
