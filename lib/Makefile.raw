@@ -26,6 +26,7 @@ LIBSKS_SRC_DIR		:= $(CURDIR)
 
 LIBSKS_SRCS		= pkcs11_api.c
 LIBSKS_SRCS 		+= handle.c
+LIBSKS_SRCS 		+= invoke_ta.c
 
 LIBSKS_INCLUDES		= ${CURDIR}/include
 LIBSKS_INCLUDES		+= ${CURDIR}/include/pkcs11
