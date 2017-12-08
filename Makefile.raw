@@ -72,6 +72,8 @@ clean-cscope:
 distclean: clean
 	$(RM) $(DESTDIR)/$(LIBDIR)/liboptee_cryptoki.so*
 	$(RM) $(DESTDIR)/$(LIBDIR)/liboptee_cryptoki.a
+	$(RM) $(DESTDIR)/$(INCLUDEDIR)/sks_abi.h
+	$(RM) $(DESTDIR)/$(INCLUDEDIR)/sks_ck_debug.h
 	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11.h
 	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11t.h
 	$(RM) $(DESTDIR)/$(INCLUDEDIR)/pkcs11f.h
@@ -81,6 +83,8 @@ install-lib: build-lib
 	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(INCLUDEDIR)
 	cp -a ${O}/lib/liboptee_cryptoki.so* $(DESTDIR)/$(LIBDIR)
 	cp -a ${O}/lib/liboptee_cryptoki.a $(DESTDIR)/$(LIBDIR)
+	cp lib/include/sks_abi.h $(DESTDIR)/$(INCLUDEDIR)
+	cp lib/include/sks_ck_debug.h $(DESTDIR)/$(INCLUDEDIR)
 	cp lib/include/pkcs11/*.h $(DESTDIR)/$(INCLUDEDIR)
 
 install-test: build-test

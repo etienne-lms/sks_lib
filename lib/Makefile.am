@@ -1,6 +1,8 @@
 include_HEADERS		= $(top_srcdir)/lib/include/pkcs11/pkcs11.h
 include_HEADERS		+= $(top_srcdir)/lib/include/pkcs11/pkcs11t.h
 include_HEADERS		+= $(top_srcdir)/lib/include/pkcs11/pkcs11f.h
+include_HEADERS		+= $(top_srcdir)/lib/include/sks_ck_debug.h
+include_HEADERS		+= $(top_srcdir)/lib/include/sks_abi.h
 
 lib_LTLIBRARIES		= liboptee_cryptoki.la
 
@@ -17,6 +19,7 @@ liboptee_cryptoki_la_SOURCES	+= serializer.c serializer.h
 liboptee_cryptoki_la_SOURCES	+= serialize_ck.c serialize_ck.h
 liboptee_cryptoki_la_SOURCES	+= sanitize_object.c sanitize_object.h
 liboptee_cryptoki_la_SOURCES	+= ck_requests.c ck_requests.h
+liboptee_cryptoki_la_SOURCES	+= ck_debug.c
 
 liboptee_cryptoki_la_CFLAGS	= -I$(top_srcdir)/lib/include
 liboptee_cryptoki_la_CFLAGS	+= -I$(top_srcdir)/lib/include/pkcs11

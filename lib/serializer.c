@@ -88,7 +88,7 @@ uint32_t serial_get_type(void *ref)
 			continue;
 
 		if (sks_ref.size != sizeof(uint32_t))
-			return SKS_VENDOR_UNDEFINED_ID;
+			return SKS_UNDEFINED_ID;
 
 		memcpy(&type, sks_ref.data, sks_ref.size);
 		return type;
@@ -97,7 +97,7 @@ uint32_t serial_get_type(void *ref)
 	if (cur != end)
 		LOG_ERROR("unexpected unalignment\n");
 
-	return SKS_VENDOR_UNDEFINED_ID;
+	return SKS_UNDEFINED_ID;
 }
 
 CK_RV serial_get_attribute_ptr(void *ref, uint32_t attribute,
@@ -183,8 +183,8 @@ char *get_serial_object_buffer(struct serializer *obj)
 void reset_serial_object(struct serializer *obj)
 {
 	memset(obj, 0, sizeof(*obj));
-	obj->class = SKS_VENDOR_UNDEFINED_ID;
-	obj->type = SKS_VENDOR_UNDEFINED_ID;
+	obj->class = SKS_UNDEFINED_ID;
+	obj->type = SKS_UNDEFINED_ID;
 }
 
 CK_RV reset_serial_object_rawhead(struct serializer *obj)

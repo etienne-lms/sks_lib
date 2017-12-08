@@ -7,11 +7,10 @@
 
 #include <err.h>
 #include <pkcs11.h>
+#include <sks_ck_debug.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-const char *ckr2str(CK_RV rv);
 
 #define ATTR_COUNT(attr)	(sizeof(attr) / sizeof(CK_ATTRIBUTE))
 
@@ -238,4 +237,3 @@ bail_lib:
 
 	return rv;
 }
-

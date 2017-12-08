@@ -40,7 +40,7 @@ static CK_RV sanitize_class_and_type(struct serializer *dst,
 
 			memcpy(&class, cur + sizeof(sks_ref), sks_ref.size);
 
-			if (dst->class != SKS_VENDOR_UNDEFINED_ID &&
+			if (dst->class != SKS_UNDEFINED_ID &&
 			    dst->class != class)
 				return CKR_TEMPLATE_INCONSISTENT;
 
@@ -64,7 +64,7 @@ static CK_RV sanitize_class_and_type(struct serializer *dst,
 
 			memcpy(&type, sks_ref.data, sks_ref.size);
 
-			if (dst->type != SKS_VENDOR_UNDEFINED_ID &&
+			if (dst->type != SKS_UNDEFINED_ID &&
 			    dst->type != type)
 				return CKR_TEMPLATE_INCONSISTENT;
 
