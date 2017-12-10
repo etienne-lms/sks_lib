@@ -125,16 +125,16 @@ CK_RV ck_encdecrypt_update(CK_SESSION_HANDLE session,
 	ctrl_size = sizeof(ctrl);
 
 	if (!out_len)
-		return CKR_ARGUMENTS_BAD;
-
-	out_size = *out_len;
+		out_size = 0;
+	else
+		out_size = *out_len;
 
 	rv = sks_invoke_ta(ck_session2sks_ctx(session),
 			   decrypt ? SKS_CMD_CK_DECRYPT_UPDATE :
 			   SKS_CMD_CK_ENCRYPT_UPDATE,
 			   &ctrl, ctrl_size, in_buf, in_size, out_buf, &out_size);
 
-	if (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL)
+	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL && out_len))
 		*out_len = out_size;
 
 	return rv;
@@ -156,16 +156,16 @@ CK_RV ck_encdecrypt_final(CK_SESSION_HANDLE session,
 	ctrl_size = sizeof(ctrl);
 
 	if (!out_len)
-		return CKR_ARGUMENTS_BAD;
-
-	out_size = *out_len;
+		out_size = 0;
+	else
+		out_size = *out_len;
 
 	rv = sks_invoke_ta(ck_session2sks_ctx(session),
 			   decrypt ? SKS_CMD_CK_DECRYPT_FINAL :
 			   SKS_CMD_CK_ENCRYPT_FINAL,
 			   &ctrl, ctrl_size, NULL, 0, out_buf, &out_size);
 
-	if (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL)
+	if (out_len && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_len = out_size;
 
 	return rv;
