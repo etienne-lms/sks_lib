@@ -223,6 +223,8 @@ CK_RV cktest_create_objects(void)
 		goto bail_session;
 	}
 
+	printf("  => Test OK\n");
+
 bail_session:
 	rv = C_CloseSession(session);
 	if (rv) {
