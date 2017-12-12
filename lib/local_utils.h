@@ -13,8 +13,7 @@
 		if (!(cond)) { \
 			LOG_ERROR("Assert failed in %s, %s:%d", \
 				  __func__, __FILE__, __LINE__); \
-			while (1) \
-				; \
+			exit(2); \
 		} \
 	} while (0)
 
