@@ -23,6 +23,18 @@
 	} while (0)
 
 
+CK_RV sks2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
+			struct sks_ck_slot_info *sks_info)
+{
+	MEMCPY_FIELD(ck_info, sks_info, slotDescription);
+	MEMCPY_FIELD(ck_info, sks_info, manufacturerID);
+	ck_info->flags = sks_info->flags;
+	MEMCPY_VERSION(ck_info, sks_info, hardwareVersion);
+	MEMCPY_VERSION(ck_info, sks_info, firmwareVersion);
+
+	return CKR_OK;
+}
+
 CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 			struct sks_ck_token_info *sks_info)
 {

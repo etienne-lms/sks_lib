@@ -22,6 +22,8 @@
  */
 CK_RV sks2ck_token_info(CK_TOKEN_INFO_PTR ck_info,
 			struct sks_ck_token_info *sks_info);
+CK_RV sks2ck_slot_info(CK_SLOT_INFO_PTR ck_info,
+			struct sks_ck_slot_info *sks_info);
 
 /*
  * Converts an array on sks ulongs into a array of CK ulongs.
