@@ -128,13 +128,31 @@ CK_RV C_InitToken(CK_SLOT_ID slot,
 		  CK_ULONG pin_len,
 		  CK_UTF8CHAR_PTR label)
 {
-	(void)slot;
-	(void)pin;
-	(void)pin_len;
-	(void)label;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = sks_ck_init_token(slot, pin, pin_len, label);
+
+	ASSERT(rv == CKR_ARGUMENTS_BAD ||
+		rv == CKR_CRYPTOKI_NOT_INITIALIZED ||
+		rv == CKR_DEVICE_ERROR ||
+		rv == CKR_DEVICE_MEMORY ||
+		rv == CKR_DEVICE_REMOVED ||
+		rv == CKR_FUNCTION_CANCELED ||
+		rv == CKR_FUNCTION_FAILED ||
+		rv == CKR_GENERAL_ERROR ||
+		rv == CKR_HOST_MEMORY ||
+		rv == CKR_OK ||
+		rv == CKR_PIN_INCORRECT ||
+		rv == CKR_PIN_LOCKED ||
+		rv == CKR_SESSION_EXISTS ||
+		rv == CKR_SLOT_ID_INVALID ||
+		rv == CKR_TOKEN_NOT_PRESENT ||
+		rv == CKR_TOKEN_NOT_RECOGNIZED ||
+		rv == CKR_TOKEN_WRITE_PROTECTED);
+
+	return rv;
 }
 
 CK_RV C_GetTokenInfo(CK_SLOT_ID slot,
