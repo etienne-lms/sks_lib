@@ -9,19 +9,6 @@
 #include "invoke_ta.h"
 #include <pkcs11/pkcs11.h>
 
-/*
- * Cryptoki session context
- *
- * @ctx - GPD TEE context used for the invocation
- * @slot - CK slot on which the CK session was opened
- * @handle - handle returned by the TEE for the CK session
- */
-struct sks_ck_session {
-	struct sks_invoke ctx;
-	CK_SLOT_ID slot;
-	uint32_t handle;
-};
-
 int sks_ck_get_info(CK_INFO_PTR info);
 CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 			   CK_SLOT_ID_PTR slots, CK_ULONG_PTR count);

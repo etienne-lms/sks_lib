@@ -44,11 +44,11 @@
 #define SKS_CMD_CK_PING			TA_SKS_CMD_CRYPTOKI(0x000000)
 
 /*
- * request args:	none
+ * request args:	[32b-slot-id]
  * input data:		none
- * output data:		table of struct sks_ck_slot_info, size gives item count
+ * output data:		[struct sks_ck_slot_info]
  */
-#define SKS_CMD_CK_SLOTS_INFO		TA_SKS_CMD_CRYPTOKI(0x000001)
+#define SKS_CMD_CK_SLOT_INFO		TA_SKS_CMD_CRYPTOKI(0x000001)
 
 struct sks_ck_slot_info {
 	uint8_t slotDescription[64];
@@ -59,9 +59,9 @@ struct sks_ck_slot_info {
 };
 
 /*
- * request args:	slot ID
+ * request args:	[32b-slot-id]
  * input data:		none
- * output data:		[sks-token-info]
+ * output data:		[struct sks_ck_token_info]
  */
 #define SKS_CMD_CK_TOKEN_INFO		TA_SKS_CMD_CRYPTOKI(0x000002)
 
@@ -88,7 +88,7 @@ struct sks_ck_token_info {
 
 /*
  * Get list of the supported mechanisms
- * request args:	none
+ * request args:	[32b-slot-id]
  * input data:		none
  * output data:		[array-of-sks-mechanism_IDs]
  */
@@ -96,7 +96,7 @@ struct sks_ck_token_info {
 
 /*
  * Open Read-Only Session
- * request args:	[sks-mechanism-id]
+ * request args:	[32b-slot-id][32b-mechanism-id]
  * input data:		none
  * output data:		[sks-mechanism-info]
  */
@@ -104,7 +104,7 @@ struct sks_ck_token_info {
 
 /*
  * Initialiaze PKCS#11 token
- * request args:	[pin-length][pin-value][32byte-label]
+ * request args:	[32b-slot-id][pin-length][pin-value][32byte-label]
  * input data:		none
  * output data:		[sks-mechanism-info)]
  */
@@ -112,7 +112,7 @@ struct sks_ck_token_info {
 
 /*
  * Initialiaze PKCS#11 token PIN
- * request args:	[sks-session-handle][pin-length][pin-value]
+ * request args:	[32b-slot-id][32b-session-handle][pin-length][pin-value]
  * input data:		none
  * output data:		none
  */
@@ -120,7 +120,7 @@ struct sks_ck_token_info {
 
 /*
  * Set PKCS#11 token PIN
- * request args:	[sks-session-handle][old-len][old-pin][new-len][new-pin]
+ * request args:	[32b-session-handle][old-len][old-pin][new-len][new-pin]
  * input data:		none
  * output data:		none
  */
@@ -128,23 +128,23 @@ struct sks_ck_token_info {
 
 /*
  * Open Read-only Session
- * request args:	slot ID
+ * request args:	[32b-slot-id]
  * input data:		none
- * output data:		[sks-session-handle]
+ * output data:		[32b-session-handle]
  */
 #define SKS_CMD_CK_OPEN_RO_SESSION	TA_SKS_CMD_CRYPTOKI(0x000008)
 
 /*
  * Open Read/Write Session
- * request args:	slot ID
+ * request args:	[32b-slot-id]
  * input data:		none
- * output data:		[sks-session-handle]
+ * output data:		[32b-session-handle]
  */
 #define SKS_CMD_CK_OPEN_RW_SESSION	TA_SKS_CMD_CRYPTOKI(0x000009)
 
 /*
  * Close Session
- * request args:	[sks-session-handle]
+ * request args:	[32b-session-handle]
  * input data:		none
  * output data:		none
  */
@@ -152,22 +152,40 @@ struct sks_ck_token_info {
 
 /*
  * Get session information
- * request args:	[sks-session-handle]
+ * request args:	[32b-session-handle]
  * input data:		none
  * output data:		[sks-session-info]
  */
 #define SKS_CMD_CK_SESSION_INFO		TA_SKS_CMD_CRYPTOKI(0x00000b)
 
 /*
- * request args:	[sks-session-handle][sks-attributes-blob]
+ * request args:	[32b-slot-id]
  * input data:		none
- * output data:		[sks-object-handle]
+ * output data:		[array-of-32b-slot_id]
+ */
+#define SKS_CMD_CK_SLOT_LIST		TA_SKS_CMD_CRYPTOKI(0x00000c)
+
+/*
+ * request args:	[32b-slot-id]
+ * input data:		none
+ * output data:		none
+ */
+#define SKS_CMD_CK_CLOSE_ALL_SESSIONS	TA_SKS_CMD_CRYPTOKI(0x00000d)
+
+/* Commands for operations on keys */
+
+/*
+ * request args:	[32b-session-handle][sks-attributes-blob]
+ * input data:		none
+ * output data:		[32b-object-handle]
  */
 #define SKS_CMD_CK_CREATE_OBJECT	TA_SKS_CMD_KEY(0x000001)
 #define SKS_CMD_CK_DESTROY_OBJECT	TA_SKS_CMD_KEY(0x000002)
 
+/* Commands for processing operations */
+
 /*
- * request args:	[sks-session-handle][sks-mechanism-blob]
+ * request args:	[32b-session-handle][sks-mechanism-blob]
  * input data:		none
  * output data:		none
  */
@@ -175,7 +193,7 @@ struct sks_ck_token_info {
 #define SKS_CMD_CK_DECRYPT_INIT		TA_SKS_CMD_PROCESSING(0x000002)
 
 /*
- * request args:	[sks-session-handle]
+ * request args:	[32b-session-handle]
  * input data:		yes
  * output data:		yes
  */
@@ -183,7 +201,7 @@ struct sks_ck_token_info {
 #define SKS_CMD_CK_DECRYPT_UPDATE	TA_SKS_CMD_PROCESSING(0x000004)
 
 /*
- * request args:	[sks-session-handle]
+ * request args:	[32b-session-handle]
  * input data:		none
  * output data:		yes
  */
