@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "helpers_ck.h"
+#include "ck_helpers.h"
 #include "local_utils.h"
 #include "sanitize_object.h"
 #include "serializer.h"

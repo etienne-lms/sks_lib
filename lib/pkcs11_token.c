@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "handle.h"
-#include "helpers_ck.h"
+#include "ck_helpers.h"
 #include "invoke_ta.h"
 #include "local_utils.h"
 #include "pkcs11_token.h"

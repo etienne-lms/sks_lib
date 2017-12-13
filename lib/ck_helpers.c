@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "helpers_ck.h"
 #include <string.h>
+
+#include "ck_helpers.h"
 
 #define MEMCPY_FIELD(_dst, _src, _f) \
 	do { \
