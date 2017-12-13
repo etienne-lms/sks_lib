@@ -180,6 +180,12 @@ struct sks_ck_token_info {
  * output data:		[32b-object-handle]
  */
 #define SKS_CMD_CK_CREATE_OBJECT	TA_SKS_CMD_KEY(0x000001)
+
+/*
+ * request args:	[32b-session-handle][32b-object-handle]
+ * input data:		none
+ * output data:		[32b-object-handle]
+ */
 #define SKS_CMD_CK_DESTROY_OBJECT	TA_SKS_CMD_KEY(0x000002)
 
 /* Commands for processing operations */

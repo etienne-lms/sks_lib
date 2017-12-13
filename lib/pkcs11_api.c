@@ -409,11 +409,15 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE session,
 CK_RV C_DestroyObject(CK_SESSION_HANDLE session,
 		      CK_OBJECT_HANDLE obj)
 {
-	(void)session;
-	(void)obj;
+	CK_RV rv;
+
 	SANITY_LIB_INIT;
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	rv = ck_destroy_object(session, obj);
+
+	// TODO sanity of return value
+	return rv;
+
 }
 
 CK_RV C_GetObjectSize(CK_SESSION_HANDLE session,

@@ -13,6 +13,9 @@ CK_RV ck_create_object(CK_SESSION_HANDLE session,
 			CK_ULONG count,
 			CK_OBJECT_HANDLE_PTR phObject);
 
+CK_RV ck_destroy_object(CK_SESSION_HANDLE session,
+			CK_OBJECT_HANDLE obj);
+
 CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 			 CK_MECHANISM_PTR mechanism,
 			 CK_OBJECT_HANDLE key,

@@ -67,6 +67,16 @@ out:
 	return rv;
 }
 
+CK_RV ck_destroy_object(CK_SESSION_HANDLE session,
+			CK_OBJECT_HANDLE obj)
+{
+	uint32_t ctrl[2] = { (uint32_t)session, (uint32_t)obj };
+
+	return sks_invoke_ta(ck_session2sks_ctx(session),
+			     SKS_CMD_CK_DESTROY_OBJECT, ctrl, sizeof(ctrl),
+			     NULL, 0, NULL, NULL);
+}
+
 CK_RV ck_encdecrypt_init(CK_SESSION_HANDLE session,
 		    CK_MECHANISM_PTR mechanism,
 		    CK_OBJECT_HANDLE key,
