@@ -19,7 +19,7 @@ struct ck2str {
 static struct ck2str cka2str_table[] = {
 	/* OP-TEE SKS ID representing a not-yet defined value */
 	CK2STR_ENTRY(CK_VENDOR_UNDEFINED_ID),
-	CK2STR_ENTRY(CKA_SKS_SECSTOR_ID),
+	CK2STR_ENTRY(CKA_SKS_SECSTOR_DATA),
 	/* Standard CK attributes */
 	CK2STR_ENTRY(CKA_PRIME),
 	CK2STR_ENTRY(CKA_SUBPRIME),
