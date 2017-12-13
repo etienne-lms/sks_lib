@@ -44,8 +44,36 @@ static int print_library_info(CK_INFO *info)
 	return 0;
 }
 
+static int print_slot_info(CK_SLOT_INFO *ck)
+{
+	char *flagstr = ck_slot_flag2str(ck->flags);
+
+	printf(",--- Slot info --------\n");
+
+	print_padded_string("| description          : ",
+			    ck->slotDescription, sizeof(ck->slotDescription));
+	print_padded_string("| manufacturer         : ",
+			    ck->manufacturerID, sizeof(ck->manufacturerID));
+
+	printf("| flags                : 0x%lx\n", ck->flags);
+	if (flagstr)
+		printf("|     details on flags : %s\n", flagstr);
+
+	printf("| hardware version     : %u.%u\n",
+		ck->hardwareVersion.major, ck->hardwareVersion.minor);
+	printf("| firmware version     : %u.%u\n",
+		ck->firmwareVersion.major, ck->firmwareVersion.minor);
+
+	printf("`------------------------\n");
+
+	free(flagstr);
+	return 0;
+}
+
 static int print_token_info(CK_TOKEN_INFO *ck)
 {
+	char *flagstr = ck_token_flag2str(ck->flags);
+
 	printf(",--- Token info --------\n");
 
 	print_padded_string("| label                : ",
@@ -58,6 +86,8 @@ static int print_token_info(CK_TOKEN_INFO *ck)
 			    ck->serialNumber, sizeof(ck->serialNumber));
 
 	printf("| flags                : 0x%lx\n", ck->flags);
+	if (flagstr)
+		printf("|     details on flags : %s\n", flagstr);
 	printf("| max session count    : 0x%lx\n", ck->ulMaxSessionCount);
 	printf("| sessoin count        : 0x%lx\n", ck->ulSessionCount);
 	printf("| max RW session count : 0x%lx\n", ck->ulMaxRwSessionCount);
@@ -78,20 +108,43 @@ static int print_token_info(CK_TOKEN_INFO *ck)
 			    ck->utcTime, sizeof(ck->utcTime));
 
 	printf("`------------------------\n");
+
+	free(flagstr);
 	return 0;
 }
 
 static int print_mecha_info(CK_MECHANISM_TYPE type, CK_MECHANISM_INFO *ck)
 {
-	printf(",--- Mechanism info --------\n");
-	printf("| type 0x%08lx - min/max key size %lu/%lu - flags 0x%lx\n",
-		type, ck->ulMinKeySize, ck->ulMaxKeySize, ck->flags);
-	printf("`------------------------\n");
+	char *flagstr = ck_mecha_flag2str(ck->flags);
 
+	printf("| type %s - flags 0x%lx", ckm2str(type), ck->flags);
+
+	switch (type) {
+	case CKM_AES_ECB:
+	case CKM_AES_CBC:
+	case CKM_AES_MAC:
+	case CKM_AES_CBC_PAD:
+	case CKM_AES_CTR:
+	case CKM_AES_GCM:
+	case CKM_AES_CCM:
+	case CKM_AES_CTS:
+		printf(" - min/max key size %lu/%lu",
+			ck->ulMinKeySize, ck->ulMaxKeySize);
+		break;
+	default:
+		break;
+	}
+
+	if (flagstr)
+		printf(" - flags set: %s", flagstr);
+
+	printf("\n");
+
+	free(flagstr);
 	return 0;
 }
 
-int test_token_basics(void)
+static int test_token_basics(void)
 {
 	CK_RV rv;
 	CK_SLOT_ID_PTR slot_ids;
@@ -103,11 +156,11 @@ int test_token_basics(void)
 	size_t i;
 	size_t j;
 
+	printf("SKS TA - test Cryptoki token info APIs\n");
+
 	rv = C_Initialize(NULL);
 	if (rv)
 		err(1, "C_Initialize failed %lx (%s)\n", rv, ckr2str(rv));
-
-	printf("SKS TA - Cryptoki state\n");
 
 	rv = C_GetInfo(&lib_info);
 	if (rv)
@@ -151,7 +204,8 @@ int test_token_basics(void)
 		if (rv)
 			err(1, "C_GetSlotInfo failed %lx (%s)\n", rv, ckr2str(rv));
 
-		printf("| slot #%lu info: TODO\n", slot);
+		print_slot_info(&slot_info);
+
 
 		rv = C_GetTokenInfo(slot, &token_info);
 		if (rv)
@@ -185,12 +239,16 @@ int test_token_basics(void)
 
 			print_mecha_info(type, &mecha_info);
 		}
+
+		printf("`------------------------\n");
+
 	}
 
 	rv = C_Finalize(NULL);
 	if (rv)
 		err(1, "C_Finalize failed %lx (%s)\n", rv, ckr2str(rv));
 
+	printf(" => Test succeed\n");
 	return 0;
 }
 
