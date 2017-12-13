@@ -252,6 +252,107 @@ static int test_token_basics(void)
 	return 0;
 }
 
+static int test_token_login_so(void)
+{
+	CK_RV rv;
+	CK_SLOT_ID_PTR slot_ids;
+	CK_SLOT_ID slot;
+	CK_ULONG slot_count;
+	CK_TOKEN_INFO token_info;
+	char pin0[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+	char pin1[] = { 0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10 };
+	char label[] = "sks test token";
+	char label32[32];
+
+	printf("SKS TA - test Cryptoki login basics\n");
+
+	rv = C_Initialize(NULL);
+	if (rv)
+		err(1, "C_Initialize failed %lx (%s)\n", rv, ckr2str(rv));
+
+	slot_count = 0;
+	rv = C_GetSlotList(1, NULL, &slot_count);
+	if (rv != CKR_BUFFER_TOO_SMALL)
+		err(1, "C_GetSlotList failed %lx (%s)\n", rv, ckr2str(rv));
+
+	slot_ids = calloc(slot_count, sizeof(CK_SLOT_ID));
+	if (slot_count && !slot_ids)
+		errx(1, "out of memory\n");
+
+	rv = C_GetSlotList(1, slot_ids, &slot_count);
+	if (rv)
+		err(1, "C_GetSlotList failed %lx (%s)\n", rv, ckr2str(rv));
+
+	/* Use the 1st slot */
+	if (slot_count < 1) {
+		printf("Warning: no slot found\n");
+		return 0;
+	}
+	slot = *slot_ids;
+
+	rv = C_GetTokenInfo(slot, &token_info);
+	if (rv)
+		err(1, "C_GetTokenInfo failed %lx (%s)\n", rv, ckr2str(rv));
+
+
+	if (strlen(label) < 32) {
+		int sz = strlen(label);
+
+		memcpy(label32, label, sz);
+		memset(&label32[sz], ' ', 32 - sz);
+	} else {
+		memcpy(label32, label, 32);
+	}
+
+
+	if (token_info.flags & CKF_TOKEN_INITIALIZED) {
+
+		printf("Token is already initialized.\n");
+
+		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin1, sizeof(pin1),
+				 (CK_UTF8CHAR_PTR)label32);
+		if (!rv)
+			err(1, "C_InitToken unexpectly succeed\n");
+
+		rv = C_GetTokenInfo(slot, &token_info);
+		if (rv)
+			err(1, "C_GetTokenInfo failed %lx (%s)\n", rv, ckr2str(rv));
+
+		if (!(token_info.flags & CKF_SO_PIN_COUNT_LOW))
+			err(1, "Failing SO login not logged in token flags\n");
+
+		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
+				 (CK_UTF8CHAR_PTR)label32);
+		if (rv)
+			err(1, "C_InitToken failed %lx (%s)\n", rv, ckr2str(rv));
+
+		if (!(token_info.flags & CKF_SO_PIN_COUNT_LOW))
+			err(1, "Failing SO login not cleared in token flags\n");
+	} else {
+		printf("Token was not yet initialized.\n");
+
+		/*  We must provision the SO PIN */
+		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
+				 (CK_UTF8CHAR_PTR)label32);
+		if (rv)
+			err(1, "C_InitToken failed %lx (%s)\n", rv, ckr2str(rv));
+
+		rv = C_GetTokenInfo(slot, &token_info);
+		if (rv)
+			err(1, "C_GetTokenInfo failed %lx (%s)\n", rv, ckr2str(rv));
+
+		if (!(token_info.flags & CKF_TOKEN_INITIALIZED))
+			err(1, "SO PIN provisioned but related token flag is not set\n");
+	}
+
+	rv = C_Finalize(NULL);
+	if (rv)
+		err(1, "C_Finalize failed %lx (%s)\n", rv, ckr2str(rv));
+
+	printf(" => Test succeed\n");
+	return 0;
+}
+
 CK_RV cktest_create_objects(void);
 
 int test_aes_ciphering(void)
@@ -270,6 +371,10 @@ int main(int argc, char *argv[])
 	int rc;
 
 	rc = test_token_basics();
+	if (rc)
+		return rc;
+
+	rc = test_token_login_so();
 	if (rc)
 		return rc;
 
