@@ -223,6 +223,12 @@ CK_RV cktest_create_objects(void)
 		goto bail_session;
 	}
 
+	rv = C_DestroyObject(session, aes_cipher_keyhld);
+	if (rv) {
+		printf("Error: C_DestroyObject: 0x%lx\n", rv);
+		goto bail_session;
+	}
+
 	printf("  => Test OK\n");
 
 bail_session:
