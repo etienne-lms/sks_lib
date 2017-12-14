@@ -157,12 +157,29 @@ void sks_free_shm(TEEC_SharedMemory *shm)
 	free(shm);
 }
 
+static CK_RV tee2ckr_error(TEEC_Result res)
+{
+	switch (res) {
+	case TEEC_SUCCESS:
+		return CKR_OK;
+	case TEEC_ERROR_BAD_PARAMETERS:
+		return CKR_ARGUMENTS_BAD;
+	case TEEC_ERROR_OUT_OF_MEMORY:
+		return CKR_DEVICE_MEMORY;
+	case TEEC_ERROR_SHORT_BUFFER:
+		return CKR_BUFFER_TOO_SMALL;
+	default:
+		return CKR_DEVICE_ERROR;
+	}
+}
+
 CK_RV sks_invoke_ta(struct sks_invoke *sks_ctx,
 		    unsigned long cmd,
 		    void *ctrl, size_t ctrl_sz,
 		    void *in, size_t in_sz,
 		    void *out, size_t *out_sz)
 {
+	CK_RV rv;
 	struct sks_invoke *ctx = get_invoke_context(sks_ctx);
 	uint32_t command = (uint32_t)cmd;
 	TEEC_Operation op;
@@ -180,7 +197,7 @@ CK_RV sks_invoke_ta(struct sks_invoke *sks_ctx,
 	if (ctrl && ctrl_sz) {
 		op.params[0].tmpref.buffer = ctrl;
 		op.params[0].tmpref.size = ctrl_sz;
-		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+		op.paramTypes |= TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INOUT,
 						  0, 0, 0);
 	}
 	if (ctrl && !ctrl_sz) {
@@ -221,23 +238,30 @@ CK_RV sks_invoke_ta(struct sks_invoke *sks_ctx,
 	 * Too short buffers are treated as positive errors.
 	 */
 	res = TEEC_InvokeCommand(teec_sess(ctx), command, &op, &origin);
-	switch (res) {
-	case TEEC_SUCCESS:
-	case TEEC_ERROR_SHORT_BUFFER:
-		break;
-	case TEEC_ERROR_OUT_OF_MEMORY:
-		return CKR_DEVICE_MEMORY;
-	default:
-		return CKR_DEVICE_ERROR;
+
+	rv = tee2ckr_error(res);
+	if (rv) {
+		if (rv == CKR_BUFFER_TOO_SMALL && out_sz)
+			*out_sz = op.params[2].tmpref.size;
+
+		return rv;
 	}
 
-	if (out_sz)
+	/* Get ckryptoki return value from ctrl buffer, if any */
+	if (ctrl && rv == CKR_OK) {
+		uint32_t rv_32b;
+
+		if ((ctrl_sz && op.params[0].tmpref.size == sizeof(rv_32b)) ||
+		    (!ctrl_sz && op.params[0].memref.size == sizeof(rv_32b))) {
+			memcpy(&rv_32b, ctrl, sizeof(rv_32b));
+			rv = (CK_RV)rv_32b;
+		}
+	}
+
+	if (out_sz && (rv == CKR_OK || rv == CKR_BUFFER_TOO_SMALL))
 		*out_sz = op.params[2].tmpref.size;
 
-	if (res == TEEC_ERROR_SHORT_BUFFER)
-		return CKR_BUFFER_TOO_SMALL;
-
-	return CKR_OK;
+	return rv;
 }
 
 void sks_invoke_terminate(void)
