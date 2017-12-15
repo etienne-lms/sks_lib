@@ -60,8 +60,7 @@ static char iv[16] = { 0 };
 
 static CK_MECHANISM cktest_aes_cbc_mechanism = { CKM_AES_CBC, iv, sizeof(iv) };
 
-CK_RV cktest_create_objects(void);
-CK_RV cktest_create_objects(void)
+static CK_RV cktest_basic_aes_ciphering(void)
 {
 	CK_RV rv;
 	CK_SLOT_ID *slots;
@@ -258,6 +257,225 @@ bail_lib:
 
 	if (rv == CKR_OK)
 		printf(" => test successful\n");
+
+	return rv;
+}
+
+static CK_ATTRIBUTE cktest_token_object[] = {
+	{ CKA_DECRYPT,	&cktest_true, sizeof(cktest_true) },
+	{ CKA_TOKEN,	&cktest_true, sizeof(cktest_true) },
+	{ CKA_MODIFIABLE, &cktest_true, sizeof(cktest_false) },
+	{ CKA_KEY_TYPE,	&cktest_aes_keyType, sizeof(cktest_aes_keyType) },
+	{ CKA_CLASS,	&cktest_symkeyClass, sizeof(cktest_symkeyClass) },
+	{ CKA_VALUE,	cktest_aes_KeyValue1, sizeof(cktest_aes_KeyValue1) }
+};
+
+static CK_ATTRIBUTE cktest_session_object[] = {
+	{ CKA_DECRYPT,	&cktest_true, sizeof(cktest_true) },
+	{ CKA_TOKEN,	&cktest_false, sizeof(cktest_true) },
+	{ CKA_MODIFIABLE, &cktest_true, sizeof(cktest_false) },
+	{ CKA_KEY_TYPE,	&cktest_aes_keyType, sizeof(cktest_aes_keyType) },
+	{ CKA_CLASS,	&cktest_symkeyClass, sizeof(cktest_symkeyClass) },
+	{ CKA_VALUE,	cktest_aes_KeyValue1, sizeof(cktest_aes_KeyValue1) }
+};
+
+/* Create session object and token object from a read-only session */
+static CK_RV cktest_create_objects_in_ro_session(void)
+{
+	CK_RV rv;
+	CK_ULONG count;
+	CK_SLOT_ID *slots;
+	CK_SESSION_HANDLE session;
+	CK_OBJECT_HANDLE token_obj_hld;
+	CK_OBJECT_HANDLE session_obj_hld;
+
+	printf("Create session and token objects in a read-only session\n");
+
+	rv = C_Initialize(0);
+	if (rv) {
+		printf("C_Initialize failed, %s\n", ckr2str(rv));
+		return rv;
+	}
+
+	rv = C_GetSlotList(CK_TRUE, NULL, &count);
+	if (rv != CKR_BUFFER_TOO_SMALL) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
+
+	if (count < 1) {
+		printf("No slot with presetn token found. Abort test\n");
+		rv = CKR_GENERAL_ERROR;
+		goto bail_lib;
+	}
+
+	slots = malloc(count * sizeof(CK_SLOT_ID));
+	if (!slots) {
+		printf("Error: out of memory, %lu slots found\n", count);
+		rv = CKR_HOST_MEMORY;
+		goto bail_lib;
+	}
+
+	rv = C_GetSlotList(CK_TRUE, slots, &count);
+	if (rv) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
+
+	rv = C_OpenSession(*slots, CKF_SERIAL_SESSION, NULL, 0, &session);
+	if (rv) {
+		printf("Error: C_OpenSession (ro): %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_lib;
+	}
+
+	rv = C_CreateObject(session, cktest_token_object,
+			    ATTR_COUNT(cktest_token_object), &token_obj_hld);
+	if (rv != CKR_SESSION_READ_ONLY) {
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+	rv = C_CreateObject(session, cktest_session_object,
+			    ATTR_COUNT(cktest_session_object), &session_obj_hld);
+	if (rv) {
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+	rv = C_DestroyObject(session, session_obj_hld);
+	if (rv) {
+		printf("Error: C_DestroyObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+bail_session:
+	rv = C_CloseSession(session);
+	if (rv)
+		printf("Error: C_CloseSession: %lx (%s)\n", rv, ckr2str(rv));
+
+bail_lib:
+	rv = C_Finalize(0);
+	if (rv)
+		printf("Error: C_Finalize: %lx (%s)\n", rv, ckr2str(rv));
+
+	if (rv == CKR_OK)
+		printf(" => test successful\n");
+
+	free(slots);
+
+	return rv;
+}
+
+static CK_RV cktest_create_objects_in_rw_session(void)
+{
+	CK_RV rv;
+	CK_ULONG count;
+	CK_SLOT_ID *slots;
+	CK_SESSION_HANDLE session;
+	CK_OBJECT_HANDLE token_obj_hld;
+	CK_OBJECT_HANDLE session_obj_hld;
+
+	printf("Create session and token objects in a read-write session\n");
+
+	rv = C_Initialize(0);
+	if (rv) {
+		printf("C_Initialize failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
+
+	rv = C_GetSlotList(CK_TRUE, NULL, &count);
+	if (rv != CKR_BUFFER_TOO_SMALL) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
+
+	if (count < 1) {
+		printf("No slot with presetn token found. Abort test\n");
+		rv = CKR_GENERAL_ERROR;
+		goto bail_lib;
+	}
+
+	slots = malloc(count * sizeof(CK_SLOT_ID));
+	if (!slots) {
+		printf("Error: out of memory, %lu slots found\n", count);
+		rv = CKR_HOST_MEMORY;
+		goto bail_lib;
+	}
+
+	rv = C_GetSlotList(CK_TRUE, slots, &count);
+	if (rv) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
+
+	rv = C_OpenSession(*slots, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+			   NULL, 0, &session);
+	if (rv) {
+		printf("Error: C_OpenSession (ro): %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_lib;
+	}
+
+	rv = C_CreateObject(session, cktest_token_object,
+			    ATTR_COUNT(cktest_token_object), &token_obj_hld);
+	if (rv != CKR_SESSION_READ_ONLY) {
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+	rv = C_CreateObject(session, cktest_session_object,
+			    ATTR_COUNT(cktest_session_object), &session_obj_hld);
+	if (rv) {
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+	rv = C_DestroyObject(session, token_obj_hld);
+	if (rv) {
+		printf("Error: C_DestroyObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+	rv = C_DestroyObject(session, session_obj_hld);
+	if (rv) {
+		printf("Error: C_DestroyObject: %lx (%s)\n", rv, ckr2str(rv));
+		goto bail_session;
+	}
+
+bail_session:
+	rv = C_CloseSession(session);
+	if (rv)
+		printf("Error: C_CloseSession: %lx (%s)\n", rv, ckr2str(rv));
+
+bail_lib:
+	rv = C_Finalize(0);
+	if (rv)
+		printf("Error: C_Finalize: %lx (%s)\n", rv, ckr2str(rv));
+
+	if (rv == CKR_OK)
+		printf(" => test successful\n");
+
+	free(slots);
+
+	return rv;
+}
+
+
+CK_RV cktest_create_objects(void);
+CK_RV cktest_create_objects(void)
+{
+	CK_RV rv;
+
+	rv = cktest_create_objects_in_ro_session();
+	if (rv)
+		return rv;
+
+	rv = cktest_create_objects_in_rw_session();
+	if (rv)
+		return rv;
+
+	rv = cktest_basic_aes_ciphering();
+	if (rv)
+		return rv;
 
 	return rv;
 }
