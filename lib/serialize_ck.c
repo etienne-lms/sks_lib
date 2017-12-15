@@ -178,14 +178,6 @@ CK_RV serialize_ck_attributes(struct serializer *obj,
 	head.blobs_count = obj->item_count;
 	memcpy(obj->buffer, &head, sizeof(head));
 
-	LOG_DEBUG(" serialize: ver %x cfg %x / sz %x #%u / [ %x %x ] / [ %x %x ] \n",
-		head.version, head.configuration,
-		head.blobs_size, head.blobs_count,
-		((struct sks_obj_keyhead *)&head)->class,
-		((struct sks_obj_keyhead *)&head)->type,
-		((struct sks_obj_keyhead *)&head)->boolpropl,
-		((struct sks_obj_keyhead *)&head)->boolproph);
-
 	return CKR_OK;
 }
 
