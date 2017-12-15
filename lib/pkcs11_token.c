@@ -59,11 +59,14 @@ CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 	/* Discard present: all are present */
 	(void)present;
 
+	if (!count)
+		return CKR_ARGUMENTS_BAD;
+
 	if (sks_invoke_ta(NULL, SKS_CMD_CK_SLOT_LIST, NULL, 0,
 			  NULL, 0, NULL, &size) != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
-	if (*count < (size / sizeof(uint32_t))) {
+	if (!slots || *count < (size / sizeof(uint32_t))) {
 		*count = size / sizeof(uint32_t);
 		return CKR_BUFFER_TOO_SMALL;
 	}
@@ -78,7 +81,7 @@ CK_RV sks_ck_slot_get_list(CK_BBOOL present,
 		goto bail;
 	}
 
-	for (n = 0; n < size / sizeof(uint32_t); n++)
+	for (n = 0; n < (size / sizeof(uint32_t)); n++)
 		slots[n] = *((uint32_t *)shm->buffer + n);
 
 	*count = size / sizeof(uint32_t);
@@ -120,24 +123,25 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 	uint32_t ctrl[1] = { slot };
 	CK_TOKEN_INFO *ck_info = info;
 	TEEC_SharedMemory *shm;
-	size_t size = 0;
+	size_t size;
 	CK_RV rv = CKR_GENERAL_ERROR;
 
-
+	ctrl[0] = (uint32_t)slot;
+	size = 0;
 	if (sks_invoke_ta(NULL, SKS_CMD_CK_TOKEN_INFO,
 			  ctrl, sizeof(ctrl), NULL, 0,
-			  &size, &size) != CKR_BUFFER_TOO_SMALL)
+			  NULL, &size) != CKR_BUFFER_TOO_SMALL)
 		return CKR_DEVICE_ERROR;
 
 	shm = sks_alloc_shm_out(NULL, size);
 	if (!shm)
 		return CKR_HOST_MEMORY;
 
-	if (sks_invoke_ta(NULL, SKS_CMD_CK_TOKEN_INFO,
-			  ctrl, sizeof(ctrl), NULL, 0, shm, NULL) != CKR_OK) {
-		rv = CKR_DEVICE_ERROR;
+	ctrl[0] = (uint32_t)slot;
+	rv = sks_invoke_ta(NULL, SKS_CMD_CK_TOKEN_INFO,
+			   ctrl, sizeof(ctrl), NULL, 0, shm, NULL);
+	if (rv)
 		goto bail;
-	}
 
 	if (shm->size < sizeof(struct sks_ck_token_info)) {
 		LOG_ERROR("unexpected bad token info size\n");
@@ -145,15 +149,11 @@ CK_RV sks_ck_token_get_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 		goto bail;
 	}
 
-	if (sks2ck_token_info(ck_info, shm->buffer)) {
-		LOG_ERROR("unexpected bad token info structure\n");
-		rv = CKR_DEVICE_ERROR;
-		goto bail;
-	}
+	rv = sks2ck_token_info(ck_info, shm->buffer);
 
-	rv = CKR_OK;
 bail:
 	sks_free_shm(shm);
+
 	return rv;
 }
 
