@@ -24,7 +24,7 @@ static CK_BYTE cktest_aes_KeyValue1[] =
 static CK_BBOOL cktest_true = CK_TRUE;
 static CK_BBOOL cktest_false = CK_FALSE;
 
-CK_ATTRIBUTE cktest_aes_cipher_keyTemplate[] = {
+static CK_ATTRIBUTE cktest_aes_cipher_keyTemplate[] = {
 	{ CKA_ENCRYPT,	&cktest_true, sizeof(cktest_true) },
 	{ CKA_DECRYPT,	&cktest_true, sizeof(cktest_true) },
 	{ CKA_TOKEN,	&cktest_true, sizeof(cktest_true) },
@@ -35,7 +35,7 @@ CK_ATTRIBUTE cktest_aes_cipher_keyTemplate[] = {
 	{ CKA_VALUE,	cktest_aes_KeyValue1, sizeof(cktest_aes_KeyValue1) }
 };
 
-CK_ATTRIBUTE cktest_aes_encrypt_keyTemplate[] = {
+static CK_ATTRIBUTE cktest_aes_encrypt_keyTemplate[] = {
 	{ CKA_ENCRYPT,	&cktest_true, sizeof(cktest_true) },
 	{ CKA_COPYABLE, &cktest_false, sizeof(cktest_false) },
 	{ CKA_MODIFIABLE, &cktest_false, sizeof(cktest_false) },
@@ -44,7 +44,7 @@ CK_ATTRIBUTE cktest_aes_encrypt_keyTemplate[] = {
 	{ CKA_VALUE,	cktest_aes_KeyValue1, sizeof(cktest_aes_KeyValue1) }
 };
 
-CK_ATTRIBUTE cktest_aes_decrypt_keyTemplate[] = {
+static CK_ATTRIBUTE cktest_aes_decrypt_keyTemplate[] = {
 	{ CKA_DECRYPT,	&cktest_true, sizeof(cktest_true) },
 	{ CKA_TOKEN,	&cktest_false, sizeof(cktest_true) },
 	{ CKA_COPYABLE, &cktest_false, sizeof(cktest_false) },
@@ -58,13 +58,13 @@ CK_ATTRIBUTE cktest_aes_decrypt_keyTemplate[] = {
 
 static char iv[16] = { 0 };
 
-CK_MECHANISM cktest_aes_cbc_mechanism = { CKM_AES_CBC, iv, sizeof(iv) };
+static CK_MECHANISM cktest_aes_cbc_mechanism = { CKM_AES_CBC, iv, sizeof(iv) };
 
 CK_RV cktest_create_objects(void);
 CK_RV cktest_create_objects(void)
 {
 	CK_RV rv;
-	CK_SLOT_ID slots[10];
+	CK_SLOT_ID *slots;
 	CK_ULONG count;
 	CK_SESSION_HANDLE session;
 	CK_OBJECT_HANDLE aes_cipher_keyhld;
@@ -74,17 +74,33 @@ CK_RV cktest_create_objects(void)
 	CK_ULONG in_len, out_len, full_len;
 
 	rv = C_Initialize(0);
-	if (rv)
+	if (rv) {
+		printf("C_Initialize failed, %s\n", ckr2str(rv));
 		return rv;
+	}
 
-	count = 10;
-	rv = C_GetSlotList(CK_TRUE, slots, &count);
-	if (rv)
-		return rv;
+	rv = C_GetSlotList(CK_TRUE, NULL, &count);
+	if (rv != CKR_BUFFER_TOO_SMALL) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
+		goto bail_lib;
+	}
 
-	if (!count || count > 10) {
-		printf("Error: C_GetSlotList: bad slot count %lu\n", count);
+	if (count < 1) {
+		printf("No slot with presetn token found. Abort test\n");
 		rv = CKR_GENERAL_ERROR;
+		goto bail_lib;
+	}
+
+	slots = malloc(count * sizeof(CK_SLOT_ID));
+	if (!slots) {
+		printf("Error: out of memory, %lu slots found\n", count);
+		rv = CKR_HOST_MEMORY;
+		goto bail_lib;
+	}
+
+	rv = C_GetSlotList(CK_TRUE, slots, &count);
+	if (rv) {
+		printf("C_GetSlotList failed, %s\n", ckr2str(rv));
 		goto bail_lib;
 	}
 
@@ -94,9 +110,10 @@ CK_RV cktest_create_objects(void)
 	 */
 	printf("Test AES key creation for encryption/decryption\n");
 
-	rv = C_OpenSession(slots[0], CKF_SERIAL_SESSION, NULL, 0, &session);
+	rv = C_OpenSession(slots[0], CKF_SERIAL_SESSION | CKF_RW_SESSION,
+			   NULL, 0, &session);
 	if (rv) {
-		printf("Error: C_OpenSession: 0x%lx\n", rv);
+		printf("Error: C_OpenSession: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_lib;
 	}
 
@@ -104,14 +121,14 @@ CK_RV cktest_create_objects(void)
 			    ATTR_COUNT(cktest_aes_cipher_keyTemplate),
 			    &aes_cipher_keyhld);
 	if (rv) {
-		printf("Error: C_CreateObject: 0x%lx\n", rv);
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
 	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism,
 			   aes_cipher_keyhld);
 	if (rv) {
-		printf("Error: C_EncryptInit: 0x%lx\n", rv);
+		printf("Error: C_EncryptInit: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -129,7 +146,7 @@ CK_RV cktest_create_objects(void)
 
 	rv = C_EncryptUpdate(session, in, in_len, out, &out_len);
 	if (rv) {
-		printf("Error: C_EncryptUpdate: 0x%lx\n", rv);
+		printf("Error: C_EncryptUpdate: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -140,7 +157,7 @@ CK_RV cktest_create_objects(void)
 
 	rv = C_EncryptUpdate(session, in, in_len, out, &out_len);
 	if (rv) {
-		printf("Error: C_EncryptUpdate: 0x%lx\n", rv);
+		printf("Error: C_EncryptUpdate: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -151,7 +168,7 @@ CK_RV cktest_create_objects(void)
 
 	rv = C_EncryptUpdate(session, in, in_len, out, &out_len);
 	if (rv) {
-		printf("Error: C_EncryptUpdate: 0x%lx\n", rv);
+		printf("Error: C_EncryptUpdate: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -161,7 +178,7 @@ CK_RV cktest_create_objects(void)
 
 	rv = C_EncryptFinal(session, out, &out_len);
 	if (rv) {
-		printf("Error: C_EncryptFinal: 0x%lx\n", rv);
+		printf("Error: C_EncryptFinal: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -171,13 +188,13 @@ CK_RV cktest_create_objects(void)
 	 * Test #2: from the same pkcs11 session,  import a decryption only
 	 *	    key and run a encryption. Should succeed.
 	 */
-	printf("Test AES encryption with an AES encryption only key\n");
+	printf("Test AES encryption with an AES decryption only key\n");
 
 	rv = C_CreateObject(session, cktest_aes_decrypt_keyTemplate,
 			    ATTR_COUNT(cktest_aes_decrypt_keyTemplate),
 			    &aes_decrypt_keyhld);
 	if (rv) {
-		printf("Error: C_CreateObject: 0x%lx\n", rv);
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -201,14 +218,14 @@ CK_RV cktest_create_objects(void)
 			    ATTR_COUNT(cktest_aes_encrypt_keyTemplate),
 			    &aes_encrypt_keyhld);
 	if (rv) {
-		printf("Error: C_CreateObject: 0x%lx\n", rv);
+		printf("Error: C_CreateObject: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
 	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism,
 			   aes_encrypt_keyhld);
 	if (rv) {
-		printf("Error: C_EncryptInit: 0x%lx\n", rv);
+		printf("Error: C_EncryptInit: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
@@ -219,29 +236,28 @@ CK_RV cktest_create_objects(void)
 
 	rv = C_Encrypt(session, in, in_len, out, &out_len);
 	if (rv) {
-		printf("Error: C_Encrypt: 0x%lx\n", rv);
+		printf("Error: C_Encrypt: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
 	rv = C_DestroyObject(session, aes_cipher_keyhld);
 	if (rv) {
-		printf("Error: C_DestroyObject: 0x%lx\n", rv);
+		printf("Error: C_DestroyObject: %lx (%s)\n", rv, ckr2str(rv));
 		goto bail_session;
 	}
 
-	printf("  => Test OK\n");
-
 bail_session:
 	rv = C_CloseSession(session);
-	if (rv) {
-		printf("Error: C_CloseSession: 0x%lx\n", rv);
-		return rv;
-	}
+	if (rv)
+		printf("Error: C_CloseSession: %lx (%s)\n", rv, ckr2str(rv));
 
 bail_lib:
 	rv = C_Finalize(0);
 	if (rv)
-		printf("Error: C_Finalize: 0x%lx\n", rv);
+		printf("Error: C_Finalize: %lx (%s)\n", rv, ckr2str(rv));
+
+	if (rv == CKR_OK)
+		printf(" => test successful\n");
 
 	return rv;
 }
