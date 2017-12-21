@@ -164,7 +164,7 @@ size_t sizeof_serial_object_head(struct serializer *obj)
 
 size_t get_serial_object_size(struct serializer *obj)
 {
-	return sizeof_serial_object_head(obj) + obj->size;
+	return obj->size;
 }
 
 char *get_serial_object_buffer(struct serializer *obj)
